@@ -4,3 +4,6 @@
 
 --creates keymap for esc so i dont need to leave home row
 vim.keymap.set("i", "kj", "<esc>")
+
+--vim.keymap.del("n", "<leader>cR")
+--im.keymap.del()

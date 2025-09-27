@@ -21,9 +21,6 @@ return {
         end,
       })
     end,
-    --keybinds for the cmake commands
-    vim.keymap.set("n", "<leader>cR", "<cmd>CMakeRun<CR>", { desc = "Cmake Run" }),
-    vim.keymap.set("n", "<leader>cG", "<cmd>CMakeGenerate<CR>", { desc = "Cmake Generate" }),
     opts = {
       cmake_command = "cmake",
       cmake_build_directory = "build",
@@ -57,9 +54,18 @@ return {
       },
     },
   },
+  --sets the creation of Cmake Commands to be only on attach of cmake server
   {
-    "stevearc/overseer.nvim",
-    opts = {},
-    --Sets keymap for c run comamnd
+    "neovim/nvim-lspconfig",
+    opts = function(_, opts)
+      opts.servers.clangd = {
+        on_attach = function(_, bufnr)
+          --keybinds for the cmake commands
+          vim.keymap.set("n", "<leader>cR", "<cmd>CMakeRun<CR>", { desc = "Cmake Run", buffer = bufnr })
+          vim.keymap.set("n", "<leader>cG", "<cmd>CMakeGenerate<CR>", { desc = "Cmake Generate", buffer = bufnr })
+          vim.keymap.set("n", "<leader>cG", "<cmd>CMakeBuild<CR>", { desc = "Cmake Build", buffer = bufnr })
+        end,
+      }
+    end,
   },
 }
