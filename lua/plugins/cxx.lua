@@ -1,87 +1,46 @@
-return {
-  {
-    "Civitasv/cmake-tools.nvim",
-    dependencies = { "stevearc/overseer.nvim" },
-    lazy = true,
-    init = function()
-      --on initialization creates a list of all cmake commands
-      local cmake_commands = {}
+local path = require("plenary.path")
 
-      local loaded = false -- flag determines whether currently loaded
-      local active = false -- flag determines whether currently active
+local function find_cmake_root(bufnr)
+  bufnr = bufnr or 0
+  local file = vim.api.nvim_buf_get_name(bufnr)
+  if file == "" then
+    return vim.loop.cwd()
+  end
 
-      --iterates through a table of all vim commands, matches them for CMake prefix and adds matching entries to cmake_commands table
-      local get_commands = function()
-        for cmd, _ in pairs(vim.api.nvim_get_commands({})) do
-          if cmd:match("^CMake") then
-            table.insert(cmake_commands, cmd)
-          end
-        end
-      end
+  local dir = path:new(file)
 
-      --deactivats cmake tools by iterating through cmake_commands and deleting all commands that match
-      local deactivate_cmake_tools = function()
-        for _, cmd in ipairs(cmake_commands) do
-          vim.api.nvim_del_user_command(cmd)
-        end
-        active = false
-      end
+  while dir.filename ~= dir:parent().filename do
+    if dir:joinpath("CMakeLists.txt"):exists() then
+      return dir.filename
+    end
+    dir = dir:parent()
+  end
 
-      --activates cmake tools plugin
-      local activate_cmake_tools = function()
-        -- if the plugin is already loaded then reload.
-        if loaded == true then
-          require("lazy").reload({ plugins = { "cmake-tools.nvim" } })
-        else -- else load the plugin and grab the cmake comamnds and set loaded flag
-          require("lazy").load({ plugins = { "cmake-tools.nvim" } })
-          get_commands()
-          loaded = true
-        end
+  return vim.loop.cwd()
+end
 
-        active = true
-      end
+local function cmake_smart_cwd()
+  local bufnr = vim.api.nvim_buf_get_name(0)
+  require("cmake-tools").select_cwd({ args = find_cmake_root(bufnr) })
+end
 
-      -- check runs on every single directory change. it is resposible for deciding when to show and when to hide cmake commands
-      local function check()
-        -- if in directory and inactive immediately return
-        local in_dir = vim.fn.filereadable(vim.uv.cwd() .. "/CMakeLists.txt")
-        if in_dir == 0 then
-          if active == false then
-            return --return early blocking clause
-          end
+vim.api.nvim_create_user_command("CmakeSmartCwd", function()
+  cmake_smart_cwd()
+end, {})
 
-          -- if active then deactivate then return
-          deactivate_cmake_tools()
-          return
-        end
-
-        --if inactive and in dir then activate
-        if active == false then
-          activate_cmake_tools()
-        end
-      end
-
-      -- runs the check command then creates an autocmd on dir change that reruns it
-      check()
-      vim.api.nvim_create_autocmd("DirChanged", {
-        callback = function()
-          check()
-        end,
-      })
-    end,
-
-    --cmake tools configuration
-    opts = {
+local loaded = false
+local try_load = function()
+  if loaded == false then
+    require("lazy").load({ plugins = { "cmake-tools.nvim" } })
+    loaded = true
+    require("cmake-tools").setup({
       cmake_command = "cmake", --cmake command to run in terminal
       cmake_build_directory = "build", --cmake build directory
       cmake_generate_options = { -- flags for build command, in this case callign for it to use ninja and export compile commands (needed for clangd integration)
-        "-G",
-        "Ninja",
+        "-G Ninja",
         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
       },
-      cmake_build_options = {},
-      cmake_root_markers = { "CMakeLists.txt", ".git" }, -- project roots, if it finds either its at the root
-
+      cmake_root_markers = { "CMakeLists.txt" }, -- project roots, if it finds either its at the root
       cmake_settings = {
         {
           name = "Debug",
@@ -106,14 +65,24 @@ return {
           },
         },
       },
-    },
+    })
+  end
+end
+
+return {
+  {
+    "Civitasv/cmake-tools.nvim",
+    dependencies = { "stevearc/overseer.nvim" },
+    lazy = true,
   },
-  --sets the creation of Cmake Commands to be only on attach of cmake server
+
   {
     "neovim/nvim-lspconfig",
     opts = function(_, opts)
       opts.servers.clangd = {
         on_attach = function(_, bufnr)
+          try_load()
+          cmake_smart_cwd()
           --keybinds for the cmake commands
           vim.keymap.set("n", "<leader>cR", "<cmd>CMakeRun<CR>", { desc = "Cmake Run", buffer = bufnr })
           vim.keymap.set("n", "<leader>cB", "<cmd>CMakeBuild<CR>", { desc = "Cmake Build", buffer = bufnr })
@@ -124,6 +93,8 @@ return {
       --only exposes cmakegenerate on cmake server attached
       opts.servers.cmake = {
         on_attach = function(_, bufnr)
+          try_load()
+          cmake_smart_cwd()
           vim.keymap.set("n", "<leader>cG", "<cmd>CMakeGenerate<CR>", { desc = "Cmake Generate", buffer = bufnr })
         end,
       }
