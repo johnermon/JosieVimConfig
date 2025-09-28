@@ -1,37 +1,45 @@
 local path = require("plenary.path")
 
+--function gets the directory of the currently loaded buffer and walks down directory until it finds CMakeLists
 local function find_cmake_root(bufnr)
-  bufnr = bufnr or 0
-  local file = vim.api.nvim_buf_get_name(bufnr)
+  bufnr = bufnr or 0 --if a buffer is not specified then default to buffer zero
+  local file = vim.api.nvim_buf_get_name(bufnr) -- gets the filename the buffer is currently pointing to
+
+  --returns current working directory if buffer is blank
   if file == "" then
     return vim.loop.cwd()
   end
 
+  --creates new plenary path from the nvim buffer directory
   local dir = path:new(file)
-
   while dir.filename ~= dir:parent().filename do
+    --if cmakelists exists in current path return
     if dir:joinpath("CMakeLists.txt"):exists() then
       return dir.filename
     end
+
+    --sets dir to parent dir
     dir = dir:parent()
   end
 
+  -- returns as a fallback
   return vim.loop.cwd()
 end
 
 local function cmake_smart_cwd()
-  local bufnr = vim.api.nvim_buf_get_name(0)
-  require("cmake-tools").select_cwd({ args = find_cmake_root(bufnr) })
+  local curr_buffer = find_cmake_root()
+  require("cmake-tools").select_cwd({ args = curr_buffer })
 end
-
-vim.api.nvim_create_user_command("CmakeSmartCwd", function()
-  cmake_smart_cwd()
-end, {})
 
 local loaded = false
 local try_load = function()
   if loaded == false then
     require("lazy").load({ plugins = { "cmake-tools.nvim" } })
+
+    vim.api.nvim_create_user_command("CmakeSmartCwd", function()
+      cmake_smart_cwd()
+    end, {})
+
     loaded = true
     require("cmake-tools").setup({
       cmake_command = "cmake", --cmake command to run in terminal
