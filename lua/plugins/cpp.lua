@@ -7,10 +7,10 @@ return {
       --on initialization creates a list of all cmake commands
       local cmake_commands = {}
 
-      --initializes loaded variable as false, and hs a function checks current directory for cmakelists and walks backwards
-      local loaded = false
-      local active = false
+      local loaded = false -- flag determines whether currently loaded
+      local active = false -- flag determines whether currently active
 
+      --iterates through a table of all vim commands, matches them for CMake prefix and adds matching entries to cmake_commands table
       local get_commands = function()
         for cmd, _ in pairs(vim.api.nvim_get_commands({})) do
           if cmd:match("^CMake") then
@@ -19,6 +19,7 @@ return {
         end
       end
 
+      --deactivats cmake tools by iterating through cmake_commands and deleting all commands that match
       local deactivate_cmake_tools = function()
         for _, cmd in ipairs(cmake_commands) do
           vim.api.nvim_del_user_command(cmd)
@@ -26,24 +27,27 @@ return {
         active = false
       end
 
-      -- function activates cmake tools by checking if its loaded. if it is not loaded loads it.
+      --activates cmake tools plugin
       local activate_cmake_tools = function()
-        if loaded == false then
+        -- if the plugin is already loaded then reload.
+        if loaded == true then
+          require("lazy").reload({ plugins = { "cmake-tools.nvim" } })
+        else -- else load the plugin and grab the cmake comamnds and set loaded flag
           require("lazy").load({ plugins = { "cmake-tools.nvim" } })
           get_commands()
           loaded = true
-        elseif active ~= true then --if inactive and loaded
-          require("lazy").reload({ plugins = { "cmake-tools.nvim" } })
         end
+
         active = true
       end
 
+      -- check runs on every single directory change. it is resposible for deciding when to show and when to hide cmake commands
       local function check()
         -- if in directory and inactive immediately return
         local in_dir = vim.fn.filereadable(vim.uv.cwd() .. "/CMakeLists.txt")
         if in_dir == 0 then
           if active == false then
-            return
+            return --return early blocking clause
           end
 
           -- if active then deactivate then return
@@ -68,15 +72,15 @@ return {
 
     --cmake tools configuration
     opts = {
-      cmake_command = "cmake",
-      cmake_build_directory = "build",
-      cmake_generate_options = {
+      cmake_command = "cmake", --cmake command to run in terminal
+      cmake_build_directory = "build", --cmake build directory
+      cmake_generate_options = { -- flags for build command, in this case callign for it to use ninja and export compile commands (needed for clangd integration)
         "-G",
         "Ninja",
         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
       },
       cmake_build_options = {},
-      cmake_root_markers = { "CMakeLists.txt", ".git" },
+      cmake_root_markers = { "CMakeLists.txt", ".git" }, -- project roots, if it finds either its at the root
 
       cmake_settings = {
         {
