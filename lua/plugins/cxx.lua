@@ -28,7 +28,7 @@ end
 
 local function cmake_smart_cwd()
   local curr_buffer = find_cmake_root()
-  require("cmake-tools").select_cwd({ args = curr_buffer })
+  require("cmake-tools").select_cwd({ args = curr_buffer }) -- undocumented cmake tools function, changes cwd of cmaketools
 end
 
 local loaded = false
