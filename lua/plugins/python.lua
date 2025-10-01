@@ -1,4 +1,5 @@
 local path = require("plenary.path")
+
 --stores whether or not there is an existing python terminal
 local terminal_instance = {
   terminal_job = nil,
@@ -28,9 +29,10 @@ local function find_python_root(bufnr)
   --creates new plenary path from the nvim buffer directory
   local dir = path:new(file)
   while dir.filename ~= dir:parent().filename do
-    --if cmakelists exists in current path return
+    --if __main__.py exists in current path return
     if dir:joinpath("__main__.py"):exists() then
       terminal_instance.term_working_dir = dir
+      return
     end
 
     --sets dir to parent dir

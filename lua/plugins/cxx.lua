@@ -21,6 +21,7 @@ local function find_cmake_root(bufnr)
     if dir:joinpath("CMakeLists.txt"):exists() then
       root = dir.filename
       build = dir.filename .. "/build"
+      return
     end
 
     --sets dir to parent dir
