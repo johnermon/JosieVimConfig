@@ -4,7 +4,6 @@ local path = require("plenary.path")
 local terminal_instance = {
   terminal_job = nil,
   term_buf = 0,
-  term_working_dir = vim.loop.cwd(),
 }
 
 local function terminal_visible(bufnr)
@@ -23,7 +22,7 @@ local function find_python_root(bufnr)
   --returns current working directory if buffer is blank
   if file == "" then
     vim.notify("working directory buffer is blank")
-    return
+    return vim.loop.cwd()
   end
 
   --creates new plenary path from the nvim buffer directory
@@ -31,13 +30,13 @@ local function find_python_root(bufnr)
   while dir.filename ~= dir:parent().filename do
     --if __main__.py exists in current path return
     if dir:joinpath("__main__.py"):exists() then
-      terminal_instance.term_working_dir = dir
-      return
+      return dir.filename
     end
 
     --sets dir to parent dir
     dir = dir:parent()
   end
+  return vim.loop.cwd()
 end
 
 local function run_python(bufnr)
@@ -64,12 +63,10 @@ local function run_python(bufnr)
     vim.api.nvim_set_current_buf(terminal_instance.term_buf)
   end
 
-  --finds the project root
-  find_python_root(bufnr)
-
+  local working_dir = path:new(vim.fn.getcwd())
   --finds the basename and the project name to properly run python project
-  local cwd = vim.fs.normalize(terminal_instance.term_working_dir:parent().filename)
-  local project_name = vim.fs.basename(vim.fs.normalize(terminal_instance.term_working_dir.filename))
+  local cwd = vim.fs.normalize(working_dir:parent().filename)
+  local project_name = vim.fs.basename(vim.fs.normalize(working_dir.filename))
 
   --into that terminal send python3 (path to current buffer) running the file
   vim.fn.chansend(terminal_instance.terminal_job, "cd " .. cwd .. "\n")
@@ -83,11 +80,14 @@ return {
     --on attach of python language server create these usercommands
     opts.servers.pyright = {
       on_attach = function(_, bufnr)
+        dir = vim.fs.normalize(find_python_root())
+        vim.notify(dir)
+        vim.loop.chdir(dir)
         --creates new usercommand Python run that runs run_python function
         vim.api.nvim_create_user_command("PythonRun", function()
-          local win = vim.api.nvim_get_current_win() -- gets current window
+          -- local win = vim.api.nvim_get_current_win() -- gets current window
           run_python(bufnr)
-          vim.api.nvim_set_current_win(win) -- sets window to the original window
+          -- vim.api.nvim_set_current_win(win) -- sets window to the original window
         end, {})
 
         --creates leader tied to current buffer that runs PythonRun

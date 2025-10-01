@@ -2,7 +2,6 @@ local path = require("plenary.path")
 local loaded = false
 
 local root = vim.loop.cwd()
-local build = vim.loop.cwd() .. "/build"
 
 --function gets the directory of the currently loaded buffer and walks down directory until it finds CMakeLists
 local function find_cmake_root(bufnr)
@@ -20,7 +19,6 @@ local function find_cmake_root(bufnr)
     --if cmakelists exists in current path return
     if dir:joinpath("CMakeLists.txt"):exists() then
       root = dir.filename
-      build = dir.filename .. "/build"
       return
     end
 
@@ -31,9 +29,9 @@ end
 
 local function cmake_smart_cwd()
   find_cmake_root()
-  local cmake = require("cmake-tools")
-  cmake.select_build_dir({ args = build })
-  -- cmake.select_cwd({ args = root }) -- undocumented cmake tools function, changes cwd of cmaketools
+  vim.loop.chdir(vim.fs.normalize(root))
+  -- vim.cmd("cd " .. vim.fs.normalize(root))
+  require("cmake-tools").select_build_dir(vim.fs.normalize(root .. "/build/"))
 end
 
 local try_load = function()
@@ -58,12 +56,12 @@ local try_load = function()
         return "out/${variant:buildType}"
       end, -- this is used to specify generate directory for cmake, allows macro expansion, can be a string or a function returning the string, relative to cwd.
       cmake_compile_commands_options = {
-        action = "soft_link", -- available options: soft_link, copy, lsp, none
+        action = none, -- available options: soft_link, copy, lsp, none
         -- soft_link: this will automatically make a soft link from compile commands file to target
         -- copy:      this will automatically copy compile commands file to target
         -- lsp:       this will automatically set compile commands file location using lsp
         -- none:      this will make this option ignored
-        target = vim.loop.cwd(),
+        -- target = vim.loop.cwd(),
       },
       cmake_kits_path = nil, -- this is used to specify global cmake kits path, see CMakeKits for detailed usage
       cmake_variants_message = {
