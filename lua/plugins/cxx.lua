@@ -29,8 +29,6 @@ end
 
 local function cmake_smart_cwd()
   find_cmake_root()
-  vim.loop.chdir(vim.fs.normalize(root))
-  -- vim.cmd("cd " .. vim.fs.normalize(root))
   require("cmake-tools").select_build_dir(vim.fs.normalize(root .. "/build/"))
 end
 
