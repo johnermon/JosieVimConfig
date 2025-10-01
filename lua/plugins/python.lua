@@ -72,7 +72,7 @@ local function run_python(bufnr)
   local project_name = vim.fs.basename(vim.fs.normalize(terminal_instance.term_working_dir.filename))
 
   --into that terminal send python3 (path to current buffer) running the file
-  vim.fn.chansend(terminal_instance.terminal_job, "cd " .. cwd .. "&& python3 -m" .. project_name .. "\n")
+  vim.fn.chansend(terminal_instance.terminal_job, "cd " .. cwd .. "&& python3 -m " .. project_name .. "\n")
   vim.cmd("normal! G")
 end
 
