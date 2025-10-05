@@ -32,7 +32,7 @@ local function find_python_root(bufnr)
     --if __main__.py exists in current path return
     if dir:joinpath("__main__.py"):exists() then
       terminal_instance.term_working_dir = dir
-      return
+      break
     end
 
     --sets dir to parent dir
@@ -60,7 +60,7 @@ local function run_python(bufnr)
 
   --if terninal is not visable recreate split and attach terminal there
   if not terminal_visible(terminal_instance.term_buf) then
-    vim.cmd("11split")
+    vim.cmd("10split")
     vim.api.nvim_set_current_buf(terminal_instance.term_buf)
   end
 
@@ -72,7 +72,7 @@ local function run_python(bufnr)
   local project_name = vim.fs.basename(vim.fs.normalize(terminal_instance.term_working_dir.filename))
 
   --into that terminal send python3 (path to current buffer) running the file
-  vim.fn.chansend(terminal_instance.terminal_job, "cd " .. cwd .. " && python3 -m " .. project_name .. "\n")
+  vim.fn.chansend(terminal_instance.terminal_job, "cd " .. cwd .. "&& python3 -m " .. project_name .. "\n")
   vim.cmd("normal! G")
 end
 
