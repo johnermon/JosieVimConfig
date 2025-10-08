@@ -29,7 +29,10 @@ end
 
 local function cmake_smart_cwd()
   find_cmake_root()
-  require("cmake-tools").select_build_dir(vim.fs.normalize(root .. "/build/"))
+  require("cmake-tools").setup({
+    cmake_build_directory = vim.fs.normalize(root .. "/build/"),
+  })
+  require("cmake-tools").select_cwd(vim.fs.normalize(root))
 end
 
 local try_load = function()
