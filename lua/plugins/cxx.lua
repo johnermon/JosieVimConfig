@@ -29,7 +29,10 @@ end
 
 local function cmake_smart_cwd()
   find_cmake_root()
-  require("cmake-tools").select_build_dir(vim.fs.normalize(root .. "/build/"))
+  require("cmake-tools").setup({
+    cmake_build_directory = vim.fs.normalize(root .. "/build/"),
+  })
+  require("cmake-tools").select_cwd(vim.fs.normalize(root))
 end
 
 local try_load = function()
@@ -41,7 +44,7 @@ local try_load = function()
       ctest_command = "ctest", -- this is used to specify ctest command path
       cmake_use_preset = true,
       cmake_regenerate_on_save = true, -- auto generate when save CMakeLists.txt
-      cmake_generate_options = { "-DCMAKE_EXPORT_COMPILE_COMMANDS=1" }, -- this will be passed when invoke `CMakeGenerate`
+      cmake_generate_options = {}, -- this will be passed when invoke `CMakeGenerate`
       cmake_build_options = {}, -- this will be passed when invoke `CMakeBuild`
       -- support macro expansion:
       --       ${kit}
@@ -54,7 +57,7 @@ local try_load = function()
         return "out/${variant:buildType}"
       end, -- this is used to specify generate directory for cmake, allows macro expansion, can be a string or a function returning the string, relative to cwd.
       cmake_compile_commands_options = {
-        action = none, -- available options: soft_link, copy, lsp, none
+        action = "none", -- available options: soft_link, copy, lsp, none
         -- soft_link: this will automatically make a soft link from compile commands file to target
         -- copy:      this will automatically copy compile commands file to target
         -- lsp:       this will automatically set compile commands file location using lsp
