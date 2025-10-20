@@ -1,50 +1,50 @@
-local path = require("plenary.path")
+-- local path = require("plenary.path")
 local loaded = false
-
-local root = vim.loop.cwd()
-
---function gets the directory of the currently loaded buffer and walks down directory until it finds CMakeLists
-local function find_cmake_root(bufnr)
-  bufnr = bufnr or 0 --if a buffer is not specified then default to buffer zero
-  local file = vim.api.nvim_buf_get_name(bufnr) -- gets the filename the buffer is currently pointing to
-
-  --returns current working directory if buffer is blank
-  if file == "" then
-    return
-  end
-
-  --creates new plenary path from the nvim buffer directory
-  local dir = path:new(file)
-  while dir.filename ~= dir:parent().filename do
-    --if cmakelists exists in current path return
-    if dir:joinpath("CMakeLists.txt"):exists() then
-      root = dir.filename
-      return
-    end
-
-    --sets dir to parent dir
-    dir = dir:parent()
-  end
-end
-
-local function cmake_smart_cwd()
-  find_cmake_root()
-  require("cmake-tools").setup({
-    cmake_build_directory = vim.fs.normalize(root .. "/build/"),
-  })
-  require("cmake-tools").select_cwd(vim.fs.normalize(root))
-end
+--
+-- local root = vim.loop.cwd()
+--
+-- --function gets the directory of the currently loaded buffer and walks down directory until it finds CMakeLists
+-- local function find_cmake_root(bufnr)
+--   bufnr = bufnr or 0 --if a buffer is not specified then default to buffer zero
+--   local file = vim.api.nvim_buf_get_name(bufnr) -- gets the filename the buffer is currently pointing to
+--
+--   --returns current working directory if buffer is blank
+--   if file == "" then
+--     return
+--   end
+--
+--   --creates new plenary path from the nvim buffer directory
+--   local dir = path:new(file)
+--   while dir.filename ~= dir:parent().filename do
+--     --if cmakelists exists in current path return
+--     if dir:joinpath("CMakeLists.txt"):exists() then
+--       root = dir.filename
+--       vim.notify(root)
+--       return
+--     end
+--
+--     --sets dir to parent dir
+--     dir = dir:parent()
+--   end
+-- end
+--
+-- local function cmake_smart_cwd()
+--   find_cmake_root()
+--   require("cmake-tools").setup({
+--     cmake_build_directory = root .. "/build/",
+--   })
+--   require("cmake-tools").select_cwd(root)
+-- end
 
 local try_load = function()
   if loaded == false then
-    require("lazy").load({ plugins = { "cmake-tools.nvim" } })
     local osys = require("cmake-tools.osys")
     require("cmake-tools").setup({
       cmake_command = "cmake", -- this is used to specify cmake command path
       ctest_command = "ctest", -- this is used to specify ctest command path
       cmake_use_preset = true,
       cmake_regenerate_on_save = true, -- auto generate when save CMakeLists.txt
-      cmake_generate_options = {}, -- this will be passed when invoke `CMakeGenerate`
+      cmake_generate_options = { "-DCMAKE_EXPORT_COMPILE_COMMANDS=1" }, -- this will be passed when invoke `CMakeGenerate`
       cmake_build_options = {}, -- this will be passed when invoke `CMakeBuild`
       -- support macro expansion:
       --       ${kit}
@@ -57,12 +57,12 @@ local try_load = function()
         return "out/${variant:buildType}"
       end, -- this is used to specify generate directory for cmake, allows macro expansion, can be a string or a function returning the string, relative to cwd.
       cmake_compile_commands_options = {
-        action = "none", -- available options: soft_link, copy, lsp, none
+        action = "soft_link", -- available options: soft_link, copy, lsp, none
         -- soft_link: this will automatically make a soft link from compile commands file to target
         -- copy:      this will automatically copy compile commands file to target
         -- lsp:       this will automatically set compile commands file location using lsp
         -- none:      this will make this option ignored
-        -- target = vim.loop.cwd(),
+        target = vim.loop.cwd(), -- path to directory, this is used only if action == "soft_link" or action == "copy"
       },
       cmake_kits_path = nil, -- this is used to specify global cmake kits path, see CMakeKits for detailed usage
       cmake_variants_message = {
@@ -182,10 +182,6 @@ local try_load = function()
       cmake_virtual_text_support = true, -- Show the target related to current file using virtual text (at right corner)
       cmake_use_scratch_buffer = false, -- A buffer that shows what cmake-tools has done
     })
-
-    vim.api.nvim_create_user_command("CmakeSmartCwd", function()
-      cmake_smart_cwd()
-    end, {})
     loaded = true
   end
 end
@@ -203,7 +199,7 @@ return {
       opts.servers.clangd = {
         on_attach = function(_, bufnr)
           try_load()
-          cmake_smart_cwd()
+          -- cmake_smart_cwd()
           --keybinds for the cmake commands
           vim.keymap.set("n", "<leader>cR", "<cmd>CMakeRun<CR>", { desc = "Cmake Run", buffer = bufnr })
           vim.keymap.set("n", "<leader>cB", "<cmd>CMakeBuild<CR>", { desc = "Cmake Build", buffer = bufnr })
@@ -215,7 +211,7 @@ return {
       opts.servers.cmake = {
         on_attach = function(_, bufnr)
           try_load()
-          cmake_smart_cwd()
+          -- cmake_smart_cwd()
           vim.keymap.set("n", "<leader>cG", "<cmd>CMakeGenerate<CR>", { desc = "Cmake Generate", buffer = bufnr })
         end,
       }
