@@ -1,32 +1,20 @@
 return {
-
+  --
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "candyland",
+      colorscheme = "carbonfox",
     },
   },
-
+  --
+  -- {
+  --   "AmberLehmann/candyland.nvim",
+  --   priority = 999,
+  -- },
+  --
   {
-    "AmberLehmann/candyland.nvim",
-    priority = 999,
-  },
-
-  {
-    "catppuccin/nvim",
-    name = "catppuccin",
-    priority = 999,
-    opts = {
-      flavour = "mocha",
-      transparent_background = false,
-      integrations = {
-        cmp = true,
-        gitsigns = true,
-        nvimtree = true,
-        treesitter = true,
-        telescope = true,
-      },
-    },
+    "EdenEast/nightfox.nvim",
+    lazy = false,
   },
 
   {
@@ -44,5 +32,22 @@ return {
         },
       })
     end,
+  },
+
+  {
+    "catppuccin/nvim",
+    name = "catppuccin",
+    priority = 1001,
+    opts = {
+      flavour = "mocha",
+      transparent_background = false,
+      integrations = {
+        cmp = true,
+        gitsigns = true,
+        nvimtree = true,
+        treesitter = true,
+        telescope = true,
+      },
+    },
   },
 }
